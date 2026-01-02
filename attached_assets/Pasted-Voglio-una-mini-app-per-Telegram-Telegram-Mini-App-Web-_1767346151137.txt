@@ -1,0 +1,211 @@
+Voglio una mini‑app per Telegram (Telegram Mini App / Web App) che funzioni come un lettore multimediale stile Amazon Music, ma che legga esclusivamente un feed RSS che fornirò io come URL.
+
+Per i test usa questo URL di esempio:
+https://feeds.feedburner.com/Zoo105
+
+--------------------------------
+STRUTTURA DEL FEED
+--------------------------------
+- È un feed RSS 2.0 con molti <item>.
+- Ogni <item> ha almeno:
+  - <title>
+  - <link>
+  - <description>
+  - <pubDate> nel formato tipico RSS (es: Wed, 24 Dec 2025 15:59:26 +0100).
+  - <enclosure ... type="audio/mpeg" url="...mp3"> per audio.
+  - <enclosure ... type="video/mp4" url="...mp4"> per video.
+- Alcuni item sono stream live (es. URL mp3 o m3u8) e altri sono file singoli mp3/mp4.
+
+--------------------------------
+OBIETTIVO GENERALE
+--------------------------------
+- La mini‑app deve:
+  - Leggere il feed RSS dall’URL configurato (inizialmente https://feeds.feedburner.com/Zoo105, ma deve poter cambiare facilmente).
+  - Mostrare una home iniziale con due grandi pulsanti:
+    - Sezione AUDIO.
+    - Sezione VIDEO.
+  - Tutti gli <item> con enclosure type="audio/mpeg" vanno nella sezione AUDIO.
+  - Tutti gli <item> con enclosure type="video/mp4" vanno nella sezione VIDEO.
+  - All’interno di AUDIO e VIDEO, gli episodi devono essere organizzati per ANNO e MESE, in base al loro pubDate.
+
+--------------------------------
+CATALOGO ANNO / MESE
+--------------------------------
+- Quando l’utente apre la mini‑app, vede la home con due scelte:
+  1) AUDIO
+  2) VIDEO
+- Se l’utente sceglie AUDIO:
+  - Mostra una griglia/lista di ANNI (es. 2000, 2001, …, 2025), ma SOLO gli anni per cui esistono episodi audio.
+  - Cliccando su un anno (es. 2024) mostra i MESI di quell’anno in cui ci sono episodi audio:
+    - Es: Gennaio 2024, Febbraio 2024, Marzo 2024, ecc.
+  - Cliccando su un mese (es. Dicembre 2025) mostra la lista delle puntate audio di quel mese ordinate dalla più recente alla più vecchia.
+- Se l’utente sceglie VIDEO:
+  - Stessa logica, ma filtrata solo sugli item con enclosure video/mp4.
+- Per ottenere anno e mese:
+  - Parsare il campo pubDate di ogni item in un oggetto data.
+  - Recuperare:
+    - anno (es. 2025),
+    - mese numerico (1–12) e il nome del mese in italiano (es. Dicembre).
+  - Usare questi valori per costruire una struttura dati tipo:
+    - catalogo.audio[anno][mese] = lista episodi audio.
+    - catalogo.video[anno][mese] = lista episodi video.
+- Nella UI i mesi devono apparire in ordine da Gennaio a Dicembre e gli anni dal più recente al più vecchio.
+
+--------------------------------
+TECNOLOGIA E PORTABILITÀ
+--------------------------------
+- Usa Node.js + Express per il backend.
+- Usa HTML/CSS/JavaScript puro per il frontend (niente framework pesanti obbligatori).
+- Il codice deve essere PORTABILE, non legato a Replit:
+  - Nessuna API proprietaria di Replit.
+  - Solo Node.js standard, Express e file statici.
+- L’app deve poter essere:
+  1) Eseguita su Replit durante lo sviluppo.
+  2) Esportata e caricata identica su qualsiasi hosting HTTPS (GitHub Pages + backend da un’altra parte, Netlify, Vercel, un hosting condiviso, un VPS, ecc.).
+- Se viene usato un backend per fare da proxy al feed RSS:
+  - Deve essere un semplice server Node.js/Express che posso mettere ovunque.
+  - Basterà cambiare l’URL nel BotFather quando sposto l’app su un nuovo dominio.
+
+File richiesti:
+- package.json con dipendenze (es. express, node-fetch o simili) e script "start".
+- index.js:
+  - Server Express che:
+    - Serve i file statici da /public.
+    - Espone una route API (es. /api/feed) che scarica il feed RSS da FEED_URL, lo parsa e restituisce un JSON già organizzato per:
+      - audio: per anno/mese.
+      - video: per anno/mese.
+- public/index.html:
+  - Contiene l’interfaccia della mini‑app (home con AUDIO/VIDEO, viste anno/mese, liste episodi, player).
+- public/style.css:
+  - Stile grafico.
+- public/player.js:
+  - Logica JavaScript per:
+    - inizializzare Telegram.WebApp,
+    - chiamare /api/feed,
+    - costruire il catalogo anno/mese,
+    - gestire la navigazione (home → sezione → anno → mese → lista episodi),
+    - gestire il player audio/video.
+- File di configurazione:
+  - .env o config.js con FEED_URL (es. FEED_URL="https://feeds.feedburner.com/Zoo105").
+
+--------------------------------
+FUNZIONI RSS E CATALOGO
+--------------------------------
+- Backend:
+  - Effettua fetch dell’RSS da FEED_URL.
+  - Parsea l’XML e per ogni <item> estrai:
+    - titolo,
+    - descrizione,
+    - link,
+    - pubDate,
+    - enclosure.url,
+    - enclosure.type.
+  - In base a enclosure.type:
+    - se inizia con "audio" → sezione audio.
+    - se inizia con "video" → sezione video.
+  - Con pubDate crea un Date e ricavi:
+    - year (YYYY),
+    - monthIndex (0–11) → trasformato in numero 1–12,
+    - monthName in italiano (Gennaio…Dicembre).
+  - Costruisci una risposta JSON del tipo:
+    {
+      audio: {
+        "2025": {
+          "12": { monthName: "Dicembre", episodes: [...] },
+          "11": { monthName: "Novembre", episodes: [...] },
+          ...
+        },
+        "2024": { ... }
+      },
+      video: {
+        "2025": { ... },
+        ...
+      }
+    }
+- Frontend:
+  - Chiama /api/feed all’avvio.
+  - Home:
+    - Due pulsanti: AUDIO, VIDEO.
+  - Vista ANNI:
+    - Per la sezione scelta, ricava l’elenco degli anni disponibili dalle chiavi del JSON.
+  - Vista MESI di un anno:
+    - Mostra i mesi ordinati da Gennaio a Dicembre, ma solo quelli presenti.
+  - Vista EPISODI del mese:
+    - Lista di puntate con titolo, data e tipo (audio/video), pulsante “Riproduci”.
+
+--------------------------------
+INTERFACCIA STILE AMAZON MUSIC
+--------------------------------
+- Tema scuro, elegante, ottimizzato per mobile.
+- Home:
+  - Due grandi card/bottoni: AUDIO e VIDEO.
+- Liste (anni, mesi, episodi):
+  - Layout semplice ma moderno, con card e testi ben leggibili.
+- Schermata player:
+  - Copertina (se presente nel feed, oppure placeholder).
+  - Titolo e data dell’episodio.
+  - Controlli:
+    - Play/Pausa.
+    - Pulsante “-3s”.
+    - Pulsante “+3s”.
+  - Barra del tempo:
+    - Sfondo decorativo (es. gradient o blur).
+    - Barra di avanzamento che si muove durante la riproduzione.
+    - Cursore trascinabile con il dito.
+    - Durante il drag, mostra il minutaggio che sto selezionando (mm:ss).
+  - La riproduzione NON deve interrompersi quando torno indietro alla lista; il player mantiene stato e posizione.
+
+--------------------------------
+VIDEO + PICTURE IN PICTURE
+--------------------------------
+- Per gli episodi video (video/mp4):
+  - Usa <video> HTML5.
+  - Aggiungi un pulsante per Picture‑in‑Picture utilizzando l’API standard JS (documentPictureInPicture / requestPictureInPicture, a seconda del supporto).
+  - Se il PiP non è supportato, il pulsante può essere nascosto o disabilitato.
+
+--------------------------------
+INTEGRAZIONE TELEGRAM MINI APP
+--------------------------------
+- In index.html includi lo script ufficiale Telegram WebApp.
+- In player.js:
+  - Inizializza window.Telegram.WebApp.
+  - Adatta eventuali colori al tema del client.
+  - Chiama WebApp.ready() quando la UI è pronta.
+- Backend:
+  - Fornisci un esempio di bot Telegram in Node.js (puoi usare telegraf o node-telegram-bot-api) che:
+    - Risponde a /start.
+    - Invia un pulsante con web_app che apre l’URL della Web App (es. https://miodominio.com o l’URL generato da Replit durante lo sviluppo).
+
+--------------------------------
+HOSTING ED ESPORTAZIONE (INDIPENDENTE DA REPLIT)
+--------------------------------
+- Il codice deve:
+  - Girare su Replit durante lo sviluppo (server Node.js con Express, porta process.env.PORT o 8000).
+  - Essere esportabile così com’è e hostabile su:
+    - un server Node.js qualsiasi,
+    - un servizio tipo Render/Vercel/Netlify,
+    - un VPS,
+    - qualunque hosting che supporti HTTPS.
+- Nessun vincolo a Replit: nessuna API specializzata.
+- Aggiungi un endpoint /ping per eventuale keep-alive (es. con cron-job.org o UptimeRobot) se l’hosting mette in sleep l’app.
+
+--------------------------------
+OUTPUT RICHIESTO
+--------------------------------
+- Albero completo delle cartelle e dei file.
+- Codice di esempio per:
+  - Parsing dell’RSS e costruzione del JSON audio/video per anno/mese.
+  - Home con scelta AUDIO/VIDEO.
+  - Navigazione anno → mese → lista episodi.
+  - Player audio/video con:
+    - Play/Pausa.
+    - ±3 secondi.
+    - Barra del tempo interattiva con drag e anteprima del tempo.
+    - Supporto PiP dove possibile per i video.
+  - Integrazione con Telegram WebApp.
+  - Bot Telegram minimo che apre la Web App.
+- Istruzioni passo‑passo per:
+  - Configurare FEED_URL.
+  - Lanciare il progetto in locale o su Replit.
+  - Deployare l’app su un hosting HTTPS a scelta.
+  - Collegare la Web App al bot tramite BotFather (settaggio Web App URL).
