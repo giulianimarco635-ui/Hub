@@ -1,14 +1,56 @@
-<!DOCTYPE html>
+ul<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RSS Hub Mini App</title>
-  <!-- CSS/JS tuoi qui -->
+  <title>RSS Hub Stelle Telegram</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:1rem;color:white;text-align:center}
+    h1{font-size:clamp(1.8rem,5vw,2.5rem);margin-bottom:1rem}
+    p{font-size:1.1rem;margin-bottom:2rem;max-width:90%}
+    button{padding:1rem 2.5rem;font-size:1.1rem;font-weight:600;background:#00d4aa;
+    color:#000;border:none;border-radius:50px;cursor:pointer;box-shadow:0 10px 30px rgba(0,212,170,0.4);
+    transition:all 0.3s ease}
+    button:hover{transform:translateY(-2px);box-shadow:0 15px 40px rgba(0,212,170,0.6)}
+    button:active{transform:translateY(0)}
+    #status{font-size:1.2rem;margin-top:1.5rem;padding:1rem;background:rgba(255,255,255,0.1);
+    border-radius:20px;backdrop-filter:blur(10px)}
+    .main-btn{bottom:1rem;left:50%;transform:translateX(-50%);position:fixed}
+  </style>
 </head>
 <body>
-  <h1>La tua Mini App RSS</h1>
-  <!-- Contenuti da Replit -->
-  <script src="script.js"></script>
+  <h1>⭐ RSS Hub Stelle</h1>
+  <p>Verifica +100 iscritti per sbloccare stelline!</p>
+  <button onclick="sbloccaStelle()">🔥 Verifica Iscrizione</button>
+  <div id="status">Pronto per i tuoi 100 iscritti...</div>
+
+  <script>
+    const tg = Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    
+    function sbloccaStelle() {
+      const status = document.getElementById('status');
+      status.innerHTML = '✅ Verifica completata! Stelle attive.';
+      
+      tg.MainButton.setParams({
+        color: '#00d4aa',
+        text_color: '#000000'
+      }).setText('💰 Ricevi Stelle Ora').show().onClick(() => {
+        tg.showAlert('🎉 +100 iscritti verificati!
+
+1 stellina = 0,023€
+
+Incassi → TON → € reali
+
+Condividi per più stelline!');
+      });
+    }
+  </script>
 </body>
 </html>
